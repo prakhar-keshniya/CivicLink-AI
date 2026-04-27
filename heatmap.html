@@ -319,8 +319,8 @@
                 if (!token) return;
 
                 const [dashRes, volsRes] = await Promise.all([
-                    fetch('http://localhost:3000/api/dashboard', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('http://localhost:3000/api/volunteers', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/dashboard', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/volunteers', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
                 if (dashRes.ok && volsRes.ok) {

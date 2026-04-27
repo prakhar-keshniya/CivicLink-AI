@@ -241,7 +241,7 @@
             const list = document.getElementById('matchesList');
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const response = await fetch('http://localhost:3000/api/matches', {
+                const response = await fetch('/api/matches', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -323,7 +323,7 @@
         async function generateAIMatchesForNeed(needId) {
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch('http://localhost:3000/api/matches/generate', {
+                const res = await fetch('/api/matches/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ needId })
@@ -340,7 +340,7 @@
         async function generateAIMatches() {
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch('http://localhost:3000/api/matches/generate', {
+                const res = await fetch('/api/matches/generate', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -356,7 +356,7 @@
             if(!selectedMatchId) return;
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch(`http://localhost:3000/api/matches/${selectedMatchId}/dispatch`, {
+                const res = await fetch(`/api/matches/${selectedMatchId}/dispatch`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -371,7 +371,7 @@
             if(!selectedMatchId) return;
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch(`http://localhost:3000/api/matches/${selectedMatchId}`, {
+                const res = await fetch(`/api/matches/${selectedMatchId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

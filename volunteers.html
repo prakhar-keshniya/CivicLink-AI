@@ -217,7 +217,7 @@
             const token = localStorage.getItem('civiclink_token');
             if (!token) return;
             try {
-                const response = await fetch('http://localhost:3000/api/volunteers', {
+                const response = await fetch('/api/volunteers', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) return;
@@ -371,7 +371,7 @@
 
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch('http://localhost:3000/api/volunteers', {
+                const res = await fetch('/api/volunteers', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ name, initials, status, location, skills })
@@ -414,7 +414,7 @@
 
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch(`http://localhost:3000/api/volunteers/${id}`, {
+                const res = await fetch(`/api/volunteers/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ name, initials, status, location, skills })
@@ -430,7 +430,7 @@
             const id = document.getElementById('editVolId').value;
             try {
                 const token = localStorage.getItem('civiclink_token');
-                const res = await fetch(`http://localhost:3000/api/volunteers/${id}`, {
+                const res = await fetch(`/api/volunteers/${id}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

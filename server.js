@@ -20,6 +20,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Serve index.html for the root path
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // HDX HAPI App ID (Base64 encoded "CivicLink-Solution-Challenge:prakhar@example.com")
 const HDX_HAPI_APP_ID = 'Q2l2aWNMaW5rLVNvbHV0aW9uLUNoYWxsZW5nZTpwcmFraGFyQGV4YW1wbGUuY29t';
 

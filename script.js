@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Fetch data from backend
     try {
         const token = localStorage.getItem('civiclink_token');
-        const response = await fetch('http://localhost:3000/api/dashboard', {
+        const response = await fetch('/api/dashboard', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -183,7 +183,7 @@ async function saveSettings() {
     const token = localStorage.getItem('civiclink_token');
 
     try {
-        const res = await fetch('http://localhost:3000/api/user/settings', {
+        const res = await fetch('/api/user/settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
