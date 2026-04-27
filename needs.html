@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Urgent Needs - CivicLink AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .filters-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background-color: var(--surface);
+            padding: 16px 24px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        .filter-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .filter-select {
+            background-color: var(--surface-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            outline: none;
+            cursor: pointer;
+        }
+        .needs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        .need-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .need-card.urgent { border-top: 4px solid var(--danger); }
+        .need-card.high { border-top: 4px solid var(--warning); }
+        .need-card.medium { border-top: 4px solid var(--info); }
+        
+        .need-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .need-status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .need-status-badge.urgent { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .need-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .need-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            flex: 1;
+        }
+        .need-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+        .requester-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .action-menu {
+            position: absolute;
+            top: 45px;
+            right: 24px;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 0;
+            display: none;
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            min-width: 130px;
+        }
+        .action-menu.active { display: block; }
+        .action-item {
+            padding: 8px 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .action-item:hover { background: rgba(255,255,255,0.05); }
+        .action-item.danger { color: var(--danger); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-network-wired logo-icon"></i>
+                    <span>CivicLink <span class="highlight">AI</span></span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fa-solid fa-chart-line"></i> Command Center</a></li>
+                    <li class="active"><a href="needs.html"><i class="fa-solid fa-triangle-exclamation"></i> Urgent Needs</a></li>
+                    <li><a href="volunteers.html"><i class="fa-solid fa-users"></i> Volunteers</a></li>
+                    <li><a href="matches.html"><i class="fa-solid fa-handshake-angle"></i> Smart Matches</a></li>
+                    <li><a href="heatmap.html"><i class="fa-solid fa-map-location-dot"></i> Heatmap</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search specific needs or locations...">
+                </div>
+                <div class="topbar-actions">
+                    <button class="primary-btn" onclick="openAddNeedModal()"><i class="fa-solid fa-plus"></i> Log New Need</button>
+                    <div class="profile-menu">
+                        <div class="profile-avatar" id="userProfileBtn">
+                            <!-- Initials populated by JS -->
+                        </div>
+                        <div class="dropdown-menu" id="profileDropdown">
+                            <div class="dropdown-header">
+                                <span class="user-name" id="dropdownUserName">Loading...</span>
+                                <span class="user-email" id="dropdownUserEmail">...</span>
+                            </div>
+                            <button class="dropdown-item" onclick="showSettingsModal()">
+                                <i class="fa-solid fa-gear"></i> Settings
+                            </button>
+                            <button class="dropdown-item" onclick="switchAccount()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Switch Account
+                            </button>
+                            <div style="border-top: 1px solid var(--border); margin: 4px 0;"></div>
+                            <button class="dropdown-item danger" onclick="handleLogout()">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Urgent Needs Register</h1>
+                        <p class="page-subtitle">Manage and prioritize active community requests</p>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <select class="filter-select" id="urgencyFilter">
+                            <option value="all">All Urgency Levels</option>
+                            <option value="urgent">Critical (Urgent)</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">Sort by:</span>
+                        <select class="filter-select" id="sortFilter">
+                            <option value="newest">Time Logged (Newest)</option>
+                            <option value="urgency">Urgency (Highest)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="needs-grid" id="fullNeedsGrid">
+                    <!-- Populated via script.js -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Need Modal -->
+    <div id="addNeedModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 100;">
+        <div class="modal-content" style="background: var(--surface); padding: 30px; border-radius: var(--radius-md); border: 1px solid var(--border); width: 100%; max-width: 500px;">
+            <span style="float: right; cursor: pointer; color: var(--text-muted);" onclick="closeAddNeedModal()"><i class="fa-solid fa-xmark"></i></span>
+            <h3 style="margin-bottom: 20px;">Log New Urgent Need</h3>
+            
+            <input type="text" id="newNeedTitle" placeholder="Need Title (e.g. Medical Supplies)" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+            
+            <select id="newNeedUrgency" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+            </select>
+            
+            <input type="text" id="newNeedLocation" placeholder="Location (e.g. North Sector)" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+            
+            <input type="text" id="newNeedTags" placeholder="Tags separated by comma (e.g. Medical, Transport)" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 20px;">
+            
+            <button class="primary-btn" style="width: 100%; padding: 12px;" onclick="submitNewNeed()">Submit Need</button>
+        </div>
+    </div>
+
+    <!-- Edit Need Modal -->
+    <div id="editNeedModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 100;">
+        <div class="modal-content" style="background: var(--surface); padding: 30px; border-radius: var(--radius-md); border: 1px solid var(--border); width: 100%; max-width: 500px;">
+            <span style="float: right; cursor: pointer; color: var(--text-muted);" onclick="closeEditNeedModal()"><i class="fa-solid fa-xmark"></i></span>
+            <h3 style="margin-bottom: 20px;">Edit Urgent Need</h3>
+            
+            <input type="hidden" id="editNeedId">
+            <input type="text" id="editNeedTitle" placeholder="Need Title" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+            
+            <select id="editNeedUrgency" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+            </select>
+            
+            <input type="text" id="editNeedLocation" placeholder="Location" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+            
+            <input type="text" id="editNeedTags" placeholder="Tags separated by comma" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 20px;">
+            
+            <button class="primary-btn" style="width: 100%; padding: 12px;" onclick="submitEditNeed()">Save Changes</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function openAddNeedModal() { document.getElementById('addNeedModal').style.display = 'flex'; }
+        function closeAddNeedModal() { document.getElementById('addNeedModal').style.display = 'none'; }
+
+        function closeEditNeedModal() { document.getElementById('editNeedModal').style.display = 'none'; }
+
+        async function submitNewNeed() {
+            const title = document.getElementById('newNeedTitle').value;
+            const urgency = document.getElementById('newNeedUrgency').value;
+            const location = document.getElementById('newNeedLocation').value;
+            const tags = document.getElementById('newNeedTags').value.split(',').map(t => t.trim()).filter(t => t);
+
+            if(!title || !location) return alert('Title and Location are required');
+
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const res = await fetch('http://localhost:3000/api/needs', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, urgency, location, tags })
+                });
+
+                if(res.ok) {
+                    closeAddNeedModal();
+                    // Refresh the page to show the new need
+                    window.location.reload();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to submit need');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Server error');
+            }
+        }
+
+        function toggleMenu(id) {
+            const menu = document.getElementById(`menu-${id}`);
+            document.querySelectorAll('.action-menu').forEach(m => {
+                if (m.id !== `menu-${id}`) m.classList.remove('active');
+            });
+            menu.classList.toggle('active');
+        }
+
+        // Close menu if clicked outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.fa-ellipsis-vertical') && !e.target.closest('.action-menu')) {
+                document.querySelectorAll('.action-menu').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        async function deleteNeed(id) {
+            if(!confirm('Are you sure you want to delete this need?')) return;
+            const token = localStorage.getItem('civiclink_token');
+            try {
+                const res = await fetch(`http://localhost:3000/api/needs/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if(res.ok) window.location.reload();
+            } catch (err) { console.error(err); alert('Failed to delete'); }
+        }
+
+        function openEditModal(id, title, urgency, location, tags) {
+            document.getElementById('editNeedId').value = id;
+            document.getElementById('editNeedTitle').value = title;
+            document.getElementById('editNeedUrgency').value = urgency;
+            document.getElementById('editNeedLocation').value = location;
+            document.getElementById('editNeedTags').value = tags;
+            document.getElementById('editNeedModal').style.display = 'flex';
+        }
+
+        async function submitEditNeed() {
+            const id = document.getElementById('editNeedId').value;
+            const title = document.getElementById('editNeedTitle').value;
+            const urgency = document.getElementById('editNeedUrgency').value;
+            const location = document.getElementById('editNeedLocation').value;
+            const tags = document.getElementById('editNeedTags').value.split(',').map(t => t.trim()).filter(t => t);
+            
+            const token = localStorage.getItem('civiclink_token');
+            try {
+                const res = await fetch(`http://localhost:3000/api/needs/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ title, urgency, location, tags })
+                });
+                if(res.ok) window.location.reload();
+                else alert('Failed to update');
+            } catch (err) { console.error(err); }
+        }
+
+        let globalNeeds = [];
+
+        // Additional page-specific rendering
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchNeeds();
+            setupFilters();
+        });
+
+        async function fetchNeeds() {
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const response = await fetch('http://localhost:3000/api/dashboard', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    globalNeeds = data.needs;
+                    renderNeedsGrid();
+                }
+            } catch (error) {
+                console.error("Failed to load needs page data", error);
+            }
+        }
+
+        function setupFilters() {
+            document.getElementById('searchInput').addEventListener('input', renderNeedsGrid);
+            document.getElementById('urgencyFilter').addEventListener('change', renderNeedsGrid);
+            document.getElementById('sortFilter').addEventListener('change', renderNeedsGrid);
+        }
+
+        function renderNeedsGrid() {
+            const grid = document.getElementById('fullNeedsGrid');
+            if (!grid) return;
+            
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const urgency = document.getElementById('urgencyFilter').value;
+            const sort = document.getElementById('sortFilter').value;
+
+            // Filter
+            let filtered = globalNeeds.filter(need => {
+                const matchQuery = need.title.toLowerCase().includes(q) || 
+                                   need.location.toLowerCase().includes(q) || 
+                                   (need.tags||[]).some(t => t.toLowerCase().includes(q));
+                const matchUrgency = urgency === 'all' || need.urgency === urgency;
+                return matchQuery && matchUrgency;
+            });
+
+            // Sort
+            filtered.sort((a, b) => {
+                if (sort === 'urgency') {
+                    const weights = { 'urgent': 3, 'high': 2, 'medium': 1 };
+                    return weights[b.urgency] - weights[a.urgency];
+                }
+                return 0; // Default is newest (as returned by DB implicitly via /api/dashboard)
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-check-circle" style="font-size:2rem; margin-bottom:8px; color:var(--success);"></i><br>No matching needs found.</div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(need => `
+                <div class="need-card ${need.urgency}">
+                    <div class="need-card-header">
+                        <div>
+                            <span class="need-status-badge ${need.urgency}">${need.urgency.toUpperCase()}</span>
+                            <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 8px;">${need.id}</span>
+                        </div>
+                        <i class="fa-solid fa-ellipsis-vertical" style="cursor: pointer; color: var(--text-muted); padding: 4px;" onclick="toggleMenu('${need.id}')"></i>
+                    </div>
+                    
+                    <div id="menu-${need.id}" class="action-menu">
+                        <div class="action-item" onclick="openEditModal('${need.id}', '${need.title.replace(/'/g, "\\'")}', '${need.urgency}', '${need.location}', '${(need.tags||[]).join(', ')}')"><i class="fa-solid fa-pen"></i> Edit</div>
+                        <div class="action-item danger" onclick="deleteNeed('${need.id}')"><i class="fa-solid fa-trash"></i> Delete</div>
+                    </div>
+
+                    <h3>${need.title}</h3>
+                    <p class="need-desc"><strong>Status:</strong> ${need.status || 'Action Required'}<br>Logged <em>${need.time}</em> in ${need.location}.</p>
+                    <div class="need-tags" style="margin-bottom: 16px;">
+                        ${(need.tags||[]).map(tag => `<span class="tag skill-tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="need-footer">
+                        <div class="requester-info">
+                            <i class="fa-solid fa-location-dot"></i> ${need.location}
+                        </div>
+                        <button class="primary-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="window.location.href='matches.html?needId=${need.id}'">Find Matches</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

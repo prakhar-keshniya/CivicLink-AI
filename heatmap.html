@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geospatial Heatmap - CivicLink AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .full-map-container {
+            height: calc(100vh - 160px);
+            background-color: #080C14;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .map-control-panel {
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            width: 280px;
+        }
+
+        .map-control-panel h3 {
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* Map specific classes extending style.css */
+        .map-grid-large {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(55, 65, 81, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(55, 65, 81, 0.3) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .zone-overlay {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.8rem;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .map-zoom-controls {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .zoom-btn:hover {
+            background-color: var(--surface-light);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-network-wired logo-icon"></i>
+                    <span>CivicLink <span class="highlight">AI</span></span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fa-solid fa-chart-line"></i> Command Center</a></li>
+                    <li><a href="needs.html"><i class="fa-solid fa-triangle-exclamation"></i> Urgent Needs</a></li>
+                    <li><a href="volunteers.html"><i class="fa-solid fa-users"></i> Volunteers</a></li>
+                    <li><a href="matches.html"><i class="fa-solid fa-handshake-angle"></i> Smart Matches</a></li>
+                    <li class="active"><a href="heatmap.html"><i class="fa-solid fa-map-location-dot"></i> Heatmap</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Search map coordinates or addresses...">
+                </div>
+                <div class="topbar-actions">
+                    <div class="profile-menu">
+                        <div class="profile-avatar" id="userProfileBtn">
+                            <!-- Initials populated by JS -->
+                        </div>
+                        <div class="dropdown-menu" id="profileDropdown">
+                            <div class="dropdown-header">
+                                <span class="user-name" id="dropdownUserName">Loading...</span>
+                                <span class="user-email" id="dropdownUserEmail">...</span>
+                            </div>
+                            <button class="dropdown-item" onclick="showSettingsModal()">
+                                <i class="fa-solid fa-gear"></i> Settings
+                            </button>
+                            <button class="dropdown-item" onclick="switchAccount()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Switch Account
+                            </button>
+                            <div style="border-top: 1px solid var(--border); margin: 4px 0;"></div>
+                            <button class="dropdown-item danger" onclick="handleLogout()">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-content" style="padding-bottom: 0;">
+                <div class="page-header" style="margin-bottom: 0;">
+                    <div>
+                        <h1 class="page-title">Geospatial Intelligence Heatmap</h1>
+                        <p class="page-subtitle" id="heatmapSubtitle">Loading live data...</p>
+                    </div>
+                    <div class="filters">
+                        <span class="filter active" id="filterAll" onclick="setFilter('all')">All Layers</span>
+                        <span class="filter" id="filterNeeds" onclick="setFilter('needs')">Live Needs</span>
+                        <span class="filter" id="filterVols" onclick="setFilter('volunteers')">Volunteers</span>
+                    </div>
+                </div>
+
+                <div class="full-map-container">
+                    <!-- Real Google Map Container -->
+                    <div id="googleMap" style="width: 100%; height: 100%; border-radius: inherit;"></div>
+
+                    <!-- UI Overlays -->
+                    <div class="map-controls">
+                        <div class="map-control-panel">
+                            <h3>Signal Density Legend</h3>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--danger); box-shadow: 0 0 8px var(--danger);"></div>
+                                <span>Critical Need (Immediate Action)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--warning);"></div>
+                                <span>High Priority Need</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: var(--info);"></div>
+                                <span>Medium Priority Need</span>
+                            </div>
+                            <div class="legend-item" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+                                <div class="legend-color" style="background: var(--success); width: 8px; height: 8px;"></div>
+                                <span>Available Volunteer</span>
+                            </div>
+                        </div>
+
+                        <!-- Live Stats Panel -->
+                        <div class="map-control-panel" id="statsPanel" style="margin-top: 12px;">
+                            <h3>Live Platform Stats</h3>
+                            <div class="legend-item" style="justify-content:space-between;">
+                                <span>Total Needs</span><strong id="statTotalNeeds">-</strong>
+                            </div>
+                            <div class="legend-item" style="justify-content:space-between;">
+                                <span style="color:var(--danger)">Urgent</span><strong id="statUrgent" style="color:var(--danger)">-</strong>
+                            </div>
+                            <div class="legend-item" style="justify-content:space-between; border-top:1px solid var(--border); padding-top:12px; margin-top:4px;">
+                                <span>Total Volunteers</span><strong id="statTotalVols">-</strong>
+                            </div>
+                            <div class="legend-item" style="justify-content:space-between;">
+                                <span style="color:var(--success)">Ready</span><strong id="statReady" style="color:var(--success)">-</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="map-zoom-controls">
+                        <button class="zoom-btn" onclick="map.setZoom(map.getZoom() + 1)"><i class="fa-solid fa-plus"></i></button>
+                        <button class="zoom-btn" onclick="map.setZoom(map.getZoom() - 1)"><i class="fa-solid fa-minus"></i></button>
+                        <button class="zoom-btn" style="margin-top: 8px;" onclick="map.panTo(centerPos)"><i class="fa-solid fa-crosshairs"></i></button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Google Maps API -->
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDMeiZYzFJrHNhtjsYcIMyLXCF07ubB1tI&libraries=visualization"></script>
+    <script src="script.js"></script>
+    <script>
+        let map;
+        let allNeedMarkers = [];
+        let allVolMarkers = [];
+        let currentFilter = 'all';
+        let infoWindow;
+        let needsData = [];
+        let volsData = [];
+        const centerPos = { lat: 40.7128, lng: -74.0060 }; // Default to NYC
+
+        // Helper to generate a consistent LatLng based on a string
+        function generateCoordinates(str, baseLat, baseLng) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            const latOffset = ((hash % 100) / 1000) - 0.05;
+            const lngOffset = (((hash >> 2) % 100) / 1000) - 0.05;
+            return { lat: baseLat + latOffset, lng: baseLng + lngOffset };
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter').forEach(f => f.classList.remove('active'));
+            if (filter === 'all') document.getElementById('filterAll').classList.add('active');
+            if (filter === 'needs') document.getElementById('filterNeeds').classList.add('active');
+            if (filter === 'volunteers') document.getElementById('filterVols').classList.add('active');
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const q = document.querySelector('.search-bar input').value.toLowerCase();
+            
+            allNeedMarkers.forEach(m => {
+                const matchesText = m.title.toLowerCase().includes(q) || m._location.toLowerCase().includes(q);
+                const matchesType = currentFilter === 'all' || currentFilter === 'needs';
+                m.setVisible(matchesText && matchesType);
+            });
+            
+            allVolMarkers.forEach(m => {
+                const matchesText = m.title.toLowerCase().includes(q) || m._location.toLowerCase().includes(q);
+                const matchesType = currentFilter === 'all' || currentFilter === 'volunteers';
+                m.setVisible(matchesText && matchesType);
+            });
+        }
+
+        async function initMap() {
+            map = new google.maps.Map(document.getElementById("googleMap"), {
+                zoom: 12,
+                center: centerPos,
+                mapTypeId: 'hybrid',
+                mapTypeControl: true,
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                    position: google.maps.ControlPosition.TOP_RIGHT,
+                },
+                zoomControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                styles: [
+                    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }
+                ]
+            });
+
+            infoWindow = new google.maps.InfoWindow();
+            
+            document.querySelector('.search-bar input').addEventListener('input', applyFilters);
+
+            await fetchDataAndPlot();
+        }
+
+        async function fetchDataAndPlot() {
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                if (!token) return;
+
+                const [dashRes, volsRes] = await Promise.all([
+                    fetch('http://localhost:3000/api/dashboard', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('http://localhost:3000/api/volunteers', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                if (dashRes.ok && volsRes.ok) {
+                    const dashData = await dashRes.json();
+                    needsData = dashData.needs;
+                    volsData = await volsRes.json();
+
+                    // Update Stats Panel
+                    document.getElementById('statTotalNeeds').textContent = needsData.length;
+                    document.getElementById('statUrgent').textContent = needsData.filter(n => n.urgency === 'urgent').length;
+                    document.getElementById('statTotalVols').textContent = volsData.length;
+                    document.getElementById('statReady').textContent = volsData.filter(v => v.status === 'Ready for Dispatch').length;
+                    document.getElementById('heatmapSubtitle').textContent = `${needsData.length} active signals · ${volsData.length} registered volunteers`;
+
+                    // Plot Needs
+                    needsData.forEach(need => {
+                        const coords = generateCoordinates(need.id + need.location, centerPos.lat, centerPos.lng);
+                        let color = need.urgency === 'urgent' ? '#EF4444' : (need.urgency === 'high' ? '#F59E0B' : '#3B82F6');
+
+                        const marker = new google.maps.Marker({
+                            position: coords,
+                            map: map,
+                            title: need.title,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: need.urgency === 'urgent' ? 10 : 7,
+                                fillColor: color,
+                                fillOpacity: 0.8,
+                                strokeWeight: 2,
+                                strokeColor: '#ffffff'
+                            }
+                        });
+                        
+                        marker._location = need.location; // for search filtering
+                        
+                        marker.addListener('click', () => {
+                            infoWindow.setContent(`
+                                <div style="color:#111;font-family:Inter,sans-serif;padding:8px;">
+                                    <h3 style="margin:0 0 8px 0;font-size:16px;">${need.title}</h3>
+                                    <div style="font-size:13px;margin-bottom:4px;"><strong>Urgency:</strong> <span style="color:${color};text-transform:uppercase;">${need.urgency}</span></div>
+                                    <div style="font-size:13px;margin-bottom:4px;"><strong>Location:</strong> ${need.location}</div>
+                                    <div style="font-size:13px;color:#666;">Status: ${need.status}</div>
+                                </div>
+                            `);
+                            infoWindow.open(map, marker);
+                        });
+                        allNeedMarkers.push(marker);
+                    });
+
+                    // Plot Volunteers
+                    volsData.forEach(vol => {
+                        const coords = generateCoordinates(vol.id + vol.location, centerPos.lat, centerPos.lng);
+                        const marker = new google.maps.Marker({
+                            position: coords,
+                            map: map,
+                            title: vol.name,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 5,
+                                fillColor: '#10B981', // Success color
+                                fillOpacity: 0.9,
+                                strokeWeight: 1,
+                                strokeColor: '#ffffff'
+                            }
+                        });
+                        
+                        marker._location = vol.location; // for search filtering
+                        
+                        marker.addListener('click', () => {
+                            infoWindow.setContent(`
+                                <div style="color:#111;font-family:Inter,sans-serif;padding:8px;">
+                                    <h3 style="margin:0 0 8px 0;font-size:16px;">${vol.name} (${vol.initials})</h3>
+                                    <div style="font-size:13px;margin-bottom:4px;"><strong>Status:</strong> <span style="color:#10B981;">${vol.status}</span></div>
+                                    <div style="font-size:13px;margin-bottom:4px;"><strong>Location:</strong> ${vol.location}</div>
+                                    <div style="font-size:13px;color:#666;">Skills: ${(vol.skills || []).join(', ')}</div>
+                                </div>
+                            `);
+                            infoWindow.open(map, marker);
+                        });
+                        allVolMarkers.push(marker);
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load map data", err);
+            }
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+
+</html>

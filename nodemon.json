@@ -1,0 +1,5 @@
+{
+  "ignore": ["database.sqlite", "*.sqlite", "node_modules"],
+  "watch": ["server.js", "script.js", "*.html", "*.css"],
+  "ext": "js,json,html,css"
+}

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Matches - CivicLink AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .split-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            height: calc(100vh - 200px);
+        }
+        .col-panel {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--surface-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .match-card-detailed {
+            background: linear-gradient(145deg, var(--surface-light), rgba(31, 41, 55, 0.5));
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .match-card-detailed.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+        .match-score-lg {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+        .vs-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 16px 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        .vs-divider::before, .vs-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px dashed var(--border);
+        }
+        .vs-divider span { padding: 0 10px; }
+        .match-factors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+        }
+        .factor { font-size: 0.8rem; display: flex; justify-content: space-between; }
+        .factor span.val { color: var(--success); font-weight: 600; }
+        
+        .action-panel {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+        .btn-success { background-color: var(--success); color: white; border: none; padding: 12px; border-radius: var(--radius-sm); flex: 2; cursor: pointer; font-weight: 600; }
+        .btn-danger { background-color: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 12px; border-radius: var(--radius-sm); flex: 1; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-network-wired logo-icon"></i>
+                    <span>CivicLink <span class="highlight">AI</span></span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fa-solid fa-chart-line"></i> Command Center</a></li>
+                    <li><a href="needs.html"><i class="fa-solid fa-triangle-exclamation"></i> Urgent Needs</a></li>
+                    <li><a href="volunteers.html"><i class="fa-solid fa-users"></i> Volunteers</a></li>
+                    <li class="active"><a href="matches.html"><i class="fa-solid fa-handshake-angle"></i> Smart Matches</a></li>
+                    <li><a href="heatmap.html"><i class="fa-solid fa-map-location-dot"></i> Heatmap</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search matches by name or task...">
+                </div>
+                <div class="topbar-actions">
+                    <div class="profile-menu">
+                        <div class="profile-avatar" id="userProfileBtn">
+                            <!-- Initials populated by JS -->
+                        </div>
+                        <div class="dropdown-menu" id="profileDropdown">
+                            <div class="dropdown-header">
+                                <span class="user-name" id="dropdownUserName">Loading...</span>
+                                <span class="user-email" id="dropdownUserEmail">...</span>
+                            </div>
+                            <button class="dropdown-item" onclick="showSettingsModal()">
+                                <i class="fa-solid fa-gear"></i> Settings
+                            </button>
+                            <button class="dropdown-item" onclick="switchAccount()">
+                                <i class="fa-solid fa-arrows-rotate"></i> Switch Account
+                            </button>
+                            <div style="border-top: 1px solid var(--border); margin: 4px 0;"></div>
+                            <button class="dropdown-item danger" onclick="handleLogout()">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title"><i class="fa-solid fa-wand-magic-sparkles gradient-text"></i> AI Dispatch Center</h1>
+                        <p class="page-subtitle">Review and execute AI-recommended pairings</p>
+                    </div>
+                    <button class="primary-btn" onclick="generateAIMatches()"><i class="fa-solid fa-bolt"></i> Auto-Dispatch Top Matches</button>
+                </div>
+
+                <div class="split-view">
+                    <!-- Suggested Queue -->
+                    <div class="col-panel">
+                        <div class="panel-header">
+                            <h3 style="font-size: 1rem;">Suggested Pairings</h3>
+                            <span class="badge" style="position: static;">0 Pending</span>
+                        </div>
+                        <div class="panel-body" id="matchesList">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Match Details & Action -->
+                    <div class="col-panel">
+                        <div class="panel-header">
+                            <h3 style="font-size: 1rem;">Match Analysis</h3>
+                        </div>
+                        <div class="panel-body" id="matchAnalysis" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-robot" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p>Select a pairing from the queue to view the AI analysis.</p>
+                        </div>
+                        <div class="action-panel" id="matchActions" style="display: none;">
+                            <button class="btn-danger" id="btnReject" onclick="rejectMatch()">Reject Match</button>
+                            <button class="btn-success" id="btnDispatch" onclick="dispatchMatch()"><i class="fa-solid fa-paper-plane"></i> Dispatch Volunteer Now</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let allMatches = [];
+        let filteredMatches = [];
+        let selectedMatchId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchMatches();
+            setupSearch();
+
+            // --- AUTO-MATCH if arriving from "Find Matches" on a specific need ---
+            const params = new URLSearchParams(window.location.search);
+            const needId = params.get('needId');
+            if (needId) {
+                // Show a banner that AI is working
+                const banner = document.createElement('div');
+                banner.id = 'aiMatchBanner';
+                banner.style.cssText = 'position:fixed;top:70px;right:24px;background:linear-gradient(135deg,#8B5CF6,#3B82F6);color:#fff;padding:14px 20px;border-radius:12px;font-size:0.9rem;font-weight:600;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(139,92,246,0.4);';
+                banner.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> AI is finding top matches...';
+                document.body.appendChild(banner);
+
+                await generateAIMatchesForNeed(needId);
+
+                banner.innerHTML = '<i class="fa-solid fa-check-circle"></i> Top matches found!';
+                banner.style.background = 'linear-gradient(135deg,#10B981,#3B82F6)';
+                setTimeout(() => banner.remove(), 2500);
+
+                // Clean the URL so refresh doesn't re-trigger
+                window.history.replaceState({}, '', 'matches.html');
+            }
+        });
+
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const q = e.target.value.toLowerCase();
+                    filteredMatches = allMatches.filter(m => 
+                        (m.volunteerName || '').toLowerCase().includes(q) ||
+                        (m.task || '').toLowerCase().includes(q) ||
+                        (m.location || '').toLowerCase().includes(q)
+                    );
+                    renderMatchList();
+                    if (filteredMatches.length > 0) {
+                        selectMatch(filteredMatches[0].id);
+                    } else {
+                        document.getElementById('matchAnalysis').innerHTML = '<p>No matches found matching your search.</p>';
+                        document.getElementById('matchActions').style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        async function fetchMatches() {
+            const list = document.getElementById('matchesList');
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const response = await fetch('http://localhost:3000/api/matches', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    allMatches = await response.json();
+                    filteredMatches = [...allMatches];
+                    document.querySelector('.badge').textContent = `${allMatches.length} Pending`;
+                    
+                    if (allMatches.length === 0) {
+                        list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);"><i class="fa-solid fa-check-circle" style="font-size:2rem; margin-bottom:8px; color:var(--success);"></i><br>No pending matches. Click the Auto-Dispatch button above to generate some!</div>';
+                        document.getElementById('matchAnalysis').innerHTML = '<div style="text-align: center; color: var(--text-muted);"><i class="fa-solid fa-robot" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i><p>Generate matches to view the AI analysis.</p></div>';
+                        document.getElementById('matchActions').style.display = 'none';
+                        return;
+                    }
+
+                    renderMatchList();
+                    selectMatch(filteredMatches[0].id); // Auto select first
+                }
+            } catch (err) {
+                console.error('Failed to load matches', err);
+            }
+        }
+
+        function renderMatchList() {
+            const list = document.getElementById('matchesList');
+            if (filteredMatches.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No matches match your search.</div>';
+                return;
+            }
+            list.innerHTML = filteredMatches.map(m => `
+                <div class="match-card-detailed ${m.id === selectedMatchId ? 'selected' : ''}" style="cursor:pointer; opacity: ${m.id === selectedMatchId ? '1' : '0.7'}; transition: all 0.2s ease;" onclick="selectMatch(${m.id})">
+                    <div class="match-score-lg" style="color: ${m.color || 'var(--success)'};">${m.score}</div>
+                    <h4 style="margin-bottom: 4px;">${m.volunteerName}</h4>
+                    <div class="vs-divider"><span>MATCHED WITH</span></div>
+                    <h4 style="color: var(--danger); margin-bottom: 4px;">${m.task}</h4>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-location-dot"></i> ${m.location}</span>
+                </div>
+            `).join('');
+        }
+
+        function selectMatch(id) {
+            selectedMatchId = id;
+            renderMatchList(); // Re-render to update selected styling
+            
+            const match = allMatches.find(m => m.id === id);
+            if (!match) return;
+
+            const analysisPanel = document.getElementById('matchAnalysis');
+            document.getElementById('matchActions').style.display = 'flex';
+
+            analysisPanel.innerHTML = `
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                        <div class="v-avatar" style="width: 60px; height: 60px; min-width:60px; border-radius: 30px; font-size: 1.5rem; background: ${match.color}20; color: ${match.color}; display: flex; align-items: center; justify-content: center; border: 2px solid ${match.color};">${match.initials}</div>
+                        <i class="fa-solid fa-link" style="color: var(--success); font-size: 1.5rem;"></i>
+                        <div class="kpi-icon danger" style="width: 60px; height: 60px; font-size: 1.5rem; border-radius: 50%; border: 2px solid var(--danger);"><i class="fa-solid fa-fire"></i></div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Compatibility Breakdown</h3>
+                
+                <div class="match-factors">
+                    <div class="factor">Skill Match <span class="val">${match.score}</span></div>
+                    <div class="factor">Proximity <span class="val">Optimal</span></div>
+                    <div class="factor">Availability <span class="val">Ready</span></div>
+                    <div class="factor">Past Success <span class="val">High</span></div>
+                </div>
+
+                <div style="margin-top: 24px; padding: 16px; background-color: rgba(59, 130, 246, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <h4 style="color: var(--primary); margin-bottom: 8px;"><i class="fa-solid fa-robot"></i> AI Assessment</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">${match.volunteerName} is the optimal choice for this task based on skills and location proximity.</p>
+                </div>
+            `;
+            analysisPanel.style.justifyContent = 'flex-start';
+            analysisPanel.style.textAlign = 'left';
+        }
+
+        // Called automatically when arriving from needs.html with a specific needId
+        async function generateAIMatchesForNeed(needId) {
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const res = await fetch('http://localhost:3000/api/matches/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ needId })
+                });
+                const data = await res.json();
+                if (res.ok && data.count > 0) {
+                    await fetchMatches(); // Reload matches list to show new ones
+                } else if (data.count === 0) {
+                    alert('No available volunteers found for this need right now. The Live Feed is adding more every 12 seconds!');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function generateAIMatches() {
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const res = await fetch('http://localhost:3000/api/matches/generate', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (data.count === 0) alert('No available matches to generate right now! Make sure you have Urgent Needs and Ready Volunteers.');
+                    else fetchMatches();
+                } else alert('Failed to generate matches');
+            } catch (err) { console.error(err); alert('Server error'); }
+        }
+
+        async function dispatchMatch() {
+            if(!selectedMatchId) return;
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const res = await fetch(`http://localhost:3000/api/matches/${selectedMatchId}/dispatch`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    alert('Volunteer successfully dispatched!');
+                    fetchMatches();
+                } else alert('Failed to dispatch');
+            } catch (err) { console.error(err); }
+        }
+
+        async function rejectMatch() {
+            if(!selectedMatchId) return;
+            try {
+                const token = localStorage.getItem('civiclink_token');
+                const res = await fetch(`http://localhost:3000/api/matches/${selectedMatchId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) fetchMatches();
+                else alert('Failed to reject');
+            } catch (err) { console.error(err); }
+        }
+    </script>
+</body>
+</html>
