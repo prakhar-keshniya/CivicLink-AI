@@ -680,9 +680,9 @@ async function syncHumanitarianData() {
     try {
         // A. Sync Missions (ReliefWeb Jobs) -> Map to "Needs"
         console.log('Fetching ReliefWeb Missions...');
-        const rwResponse = await fetch('https://api.reliefweb.int/v2/jobs?appname=CivicLink-AI-Challenge&limit=20&preset=latest', {
+        const rwResponse = await fetch('https://api.reliefweb.int/v2/jobs?appname=civiclink-ai&limit=20&preset=latest', {
             headers: { 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'CivicLink-AI (Contact: prakhar@example.com)',
                 'Accept': 'application/json'
             }
         });
@@ -733,12 +733,14 @@ async function syncHumanitarianData() {
             console.log(`HDX returned ${units.length} operational units.`);
             
             for (const unit of units) {
-                const id = `HDX-${unit.resource_id.substring(0, 8)}-${unit.org_acronym}`;
-                const name = unit.org_name;
-                const initials = unit.org_acronym || unit.org_name.substring(0, 2).toUpperCase();
+                // Ensure we have a valid ID, fallback to a random one if resource_id is missing
+                const resId = unit.resource_id ? unit.resource_id.substring(0, 8) : Math.random().toString(36).substring(2, 10);
+                const id = `HDX-${resId}-${unit.org_acronym || 'ORG'}`;
+                const name = unit.org_name || 'Humanitarian Unit';
+                const initials = unit.org_acronym || (name.substring(0, 2).toUpperCase());
                 const status = 'Active Deployment';
                 const skills = unit.sector_name || 'General Response';
-                const location = unit.location_name;
+                const location = unit.location_name || 'Global Area';
 
                 await db.run(`
                     INSERT OR IGNORE INTO volunteers (id, name, initials, status, skills, location)
@@ -857,3 +859,13 @@ app.listen(PORT, () => {
     console.log(`CivicLink AI Server running at http://localhost:${PORT}`);
     console.log(`[Auto-Sync] ACTIVE - 100% Real Data: USGS + GDACS + ReliefWeb + HDX HAPI (Beta)`);
 });
+
+app.get("*", (req, res) => {
+    res.sendFile(require("path").join(__dirname, "index.html"));
+});
+
+
+app.get("*", (req, res) => {
+    res.sendFile(require("path").join(__dirname, "index.html"));
+});
+

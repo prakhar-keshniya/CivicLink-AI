@@ -61,12 +61,27 @@ function setupProfileMenu() {
     const profileBtn = document.getElementById('userProfileBtn');
     const dropdown = document.getElementById('profileDropdown');
     
-    if (profileBtn && user.name) {
-        // 1. Update the data (Initials and Header)
-        const initials = user.name.split(' ').filter(n => n).map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    if (profileBtn && user.email) {
+        // Generate initials: Exclusively use email prefix as requested
+        const emailPrefix = user.email.split('@')[0];
+        
+        // Split by dots, dashes or underscores to find parts in the email
+        const parts = emailPrefix.split(/[._-]+/).filter(p => p.length > 0);
+        let initials = "";
+        
+        if (parts.length >= 2) {
+            // e.g. prakhar.keshniya -> PK
+            initials = (parts[0][0] + parts[1][0]).toUpperCase();
+        } else if (parts.length === 1) {
+            // e.g. prakhar -> PR
+            initials = parts[0].substring(0, Math.min(2, parts[0].length)).toUpperCase();
+        } else {
+            initials = "??";
+        }
+
         profileBtn.textContent = initials;
         
-        if (document.getElementById('dropdownUserName')) document.getElementById('dropdownUserName').textContent = user.name;
+        if (document.getElementById('dropdownUserName')) document.getElementById('dropdownUserName').textContent = user.name || emailPrefix;
         if (document.getElementById('dropdownUserEmail')) document.getElementById('dropdownUserEmail').textContent = user.email;
 
         // 2. Attach listeners ONLY ONCE
